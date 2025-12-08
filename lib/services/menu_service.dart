@@ -17,4 +17,17 @@ class MenuService {
       (rows) => rows.map((row) => MenuItemModel.fromMap(row)).toList(),
     );
   }
+
+  /// Fetch menu items once (used in FutureBuilder)
+  Future<List<MenuItemModel>> getMenuItems() async {
+    final response = await _client
+        .from('menu_items')
+        .select()
+        .order('category')
+        .order('name');
+
+    return response.map<MenuItemModel>((row) {
+      return MenuItemModel.fromMap(row);
+    }).toList();
+  }
 }

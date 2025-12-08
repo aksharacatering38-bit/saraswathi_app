@@ -4,9 +4,9 @@ class MenuItemModel {
   final String id;
   final String name;
   final String description;
-  final int price; // in rupees
-  final String category; // e.g. "Breads", "Curries"
-  final String itemType; // e.g. "Recommended"
+  final int price; 
+  final String category; 
+  final String itemType; 
   final bool isAvailable;
   final String? imageUrl;
   final bool isBestSeller;
@@ -25,7 +25,7 @@ class MenuItemModel {
 
   factory MenuItemModel.fromMap(Map<String, dynamic> map) {
     return MenuItemModel(
-      id: map['id'] as String,
+      id: map['id'].toString(), // safe for UUID or int
       name: map['name'] as String? ?? '',
       description: map['description'] as String? ?? '',
       price: (map['price'] as num?)?.toInt() ?? 0,
