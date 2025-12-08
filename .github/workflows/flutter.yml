@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   build:
@@ -16,23 +17,17 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.22.0'
+          channel: "stable"
+          flutter-version: "3.38.4"
 
       - name: Get dependencies
-        run: |
-          cd saraswathi_app
-          flutter pub get
+        run: flutter pub get
 
       - name: Build APK
-        run: |
-          cd saraswathi_app
-          flutter build apk --release
-
-      - name: Find APK file
-        run: find . -name "*.apk"
+        run: flutter build apk --release
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: apk
-          path: "**/*.apk"
+          name: saraswathi-tiffins-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
