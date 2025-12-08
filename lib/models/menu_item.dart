@@ -4,11 +4,11 @@ class MenuItemModel {
   final String id;
   final String name;
   final String description;
-  final int price; 
-  final String category; 
-  final String itemType; 
+  final int price;
+  final String category;
+  final String itemType;
   final bool isAvailable;
-  final String? imageUrl;
+  final String imageUrl;        // <-- FIXED: no '?'
   final bool isBestSeller;
 
   const MenuItemModel({
@@ -19,20 +19,20 @@ class MenuItemModel {
     required this.category,
     required this.itemType,
     required this.isAvailable,
-    required this.imageUrl,
+    required this.imageUrl,     // <-- FIXED
     required this.isBestSeller,
   });
 
   factory MenuItemModel.fromMap(Map<String, dynamic> map) {
     return MenuItemModel(
-      id: map['id'].toString(), // safe for UUID or int
+      id: map['id'] as String,
       name: map['name'] as String? ?? '',
       description: map['description'] as String? ?? '',
       price: (map['price'] as num?)?.toInt() ?? 0,
       category: map['category'] as String? ?? '',
       itemType: map['item_type'] as String? ?? '',
       isAvailable: map['is_available'] as bool? ?? true,
-      imageUrl: map['image_url'] as String?,
+      imageUrl: map['image_url'] as String? ?? '',   // <-- FIXED
       isBestSeller: map['is_best_seller'] as bool? ?? false,
     );
   }
