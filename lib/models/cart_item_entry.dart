@@ -1,4 +1,4 @@
-import '../menu_item.dart';
+import 'menu_item.dart';
 
 class CartItemEntry {
   final MenuItemModel item;
@@ -10,4 +10,5 @@ class CartItemEntry {
   });
 
   int get totalPrice => item.price * quantity;
-}
+}	
+

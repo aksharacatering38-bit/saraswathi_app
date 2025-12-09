@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-
-import 'menu_item.dart';
+import 'models/menu_item.dart';
 import 'models/cart_item_entry.dart';
 import 'services/menu_service.dart';
 import 'cart_screen.dart';
@@ -15,24 +14,26 @@ class CustomerHomeScreen extends StatefulWidget {
 class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   final MenuService _menuService = MenuService();
 
+  /// cart: key = item.id
   final Map<String, CartItemEntry> _cart = {};
-  String _selectedCategory = 'All';
 
+  String _selectedCategory = "All";
+
+  // ----------------- CART CALCULATIONS -----------------
   int get _totalCartItems =>
       _cart.values.fold(0, (sum, entry) => sum + entry.quantity);
 
   int get _totalCartPrice =>
       _cart.values.fold(0, (sum, entry) => sum + entry.totalPrice);
 
-  // ---------------- CART LOGIC ----------------
+  // ----------------- CART OPERATIONS -----------------
 
   void _addToCart(MenuItemModel item) {
     setState(() {
-      final existing = _cart[item.id];
-      if (existing == null) {
-        _cart[item.id] = CartItemEntry(item: item, quantity: 1);
+      if (_cart.containsKey(item.id)) {
+        _cart[item.id]!.quantity++;
       } else {
-        existing.quantity += 1;
+        _cart[item.id] = CartItemEntry(item: item, quantity: 1);
       }
     });
   }
@@ -43,7 +44,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     setState(() {
       final entry = _cart[item.id]!;
       if (entry.quantity > 1) {
-        entry.quantity -= 1;
+        entry.quantity--;
       } else {
         _cart.remove(item.id);
       }
@@ -57,7 +58,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => CartScreen(cartItems: cartList),
+        builder: (_) => CartScreen(cart: cartList),
       ),
     );
   }
@@ -69,16 +70,16 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Payment'),
+          title: const Text("Payment"),
           content: Text(
-            'Total payable amount is ₹$_totalCartPrice.\n\n'
-            'Razorpay integration will be connected to this.\n'
-            'For now this is a demo confirmation.',
+            "Total payable amount is ₹$_totalCartPrice.\n\n"
+            "Razorpay integration will be connected.\n"
+            "For now, this is a demo confirmation.",
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Close"),
             ),
           ],
         );
@@ -86,13 +87,13 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     );
   }
 
-  // ---------------- UI BUILD ----------------
+  // --------------------- UI BUILD ---------------------
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Saraswathi Tiffins'),
+        title: const Text("Saraswathi Tiffins"),
         centerTitle: true,
         actions: [
           Stack(
@@ -129,26 +130,26 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           ),
         ],
       ),
+
       body: Column(
         children: [
           const SizedBox(height: 8),
           _buildHeaderBanner(),
           const SizedBox(height: 8),
+
           Expanded(
             child: StreamBuilder<List<MenuItemModel>>(
               stream: _menuService.watchMenuItems(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting &&
                     !snapshot.hasData) {
-                  return const Center(
-                    child: CircularProgressIndicator(),
-                  );
+                  return const Center(child: CircularProgressIndicator());
                 }
 
                 if (snapshot.hasError) {
                   return Center(
                     child: Text(
-                      'Failed to load menu.\n${snapshot.error}',
+                      "Failed to load menu.\n${snapshot.error}",
                       textAlign: TextAlign.center,
                     ),
                   );
@@ -158,7 +159,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
                 if (items.isEmpty) {
                   return const Center(
-                    child: Text('Menu is not available right now.'),
+                    child: Text("Menu is not available right now."),
                   );
                 }
 
@@ -166,13 +167,14 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               },
             ),
           ),
+
           if (_cart.isNotEmpty) _buildCartSummaryBar(),
         ],
       ),
     );
   }
 
-  // ---------------- WIDGETS ----------------
+  // ---------------------- WIDGETS ----------------------
 
   Widget _buildHeaderBanner() {
     return Container(
@@ -184,17 +186,16 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         border: Border.all(color: Colors.orange.shade200),
       ),
       child: Row(
-        children: [
-          const Icon(
+        children: const [
+          Icon(
             Icons.delivery_dining_rounded,
             size: 32,
             color: Colors.deepOrange,
           ),
-          const SizedBox(width: 12),
-          const Expanded(
+          SizedBox(width: 12),
+          Expanded(
             child: Text(
-              'Evening tiffins delivered before 8:00 PM.\n'
-              'Order now and relax!',
+              "Evening tiffins delivered before 8:00 PM.\nOrder now and relax!",
               style: TextStyle(fontSize: 13, height: 1.3),
             ),
           ),
@@ -205,18 +206,18 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
   Widget _buildMenuWithCategories(List<MenuItemModel> allItems) {
     final categories = <String>{
-      'All',
-      ...allItems.map((e) => e.category).where((c) => c.trim().isNotEmpty),
+      "All",
+      ...allItems.map((e) => e.category.trim()).where((c) => c.isNotEmpty),
     }.toList();
 
-    final filteredItems = _selectedCategory == 'All'
+    final filteredItems = _selectedCategory == "All"
         ? allItems
-        : allItems.where((e) => e.category == _selectedCategory).toList();
+        : allItems.where((item) => item.category == _selectedCategory).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Categories row
+        const SizedBox(height: 8),
         SizedBox(
           height: 44,
           child: ListView.separated(
@@ -232,9 +233,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                 label: Text(category),
                 selected: isSelected,
                 onSelected: (_) {
-                  setState(() {
-                    _selectedCategory = category;
-                  });
+                  setState(() => _selectedCategory = category);
                 },
               );
             },
@@ -244,7 +243,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 16),
           child: Text(
-            'Menu',
+            "Menu",
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -252,6 +251,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           ),
         ),
         const SizedBox(height: 4),
+
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -267,9 +267,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     );
   }
 
-  Widget _buildMenuItemCard(
-      MenuItemModel item, CartItemEntry? cartEntry) {
-    final quantity = cartEntry?.quantity ?? 0;
+  Widget _buildMenuItemCard(MenuItemModel item, CartItemEntry? entry) {
+    final quantity = entry?.quantity ?? 0;
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
@@ -281,9 +280,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           children: [
             _buildItemImage(item),
             const SizedBox(width: 10),
-            Expanded(
-              child: _buildItemDetails(item, quantity),
-            ),
+            Expanded(child: _buildItemDetails(item, quantity)),
             const SizedBox(width: 8),
             _buildQuantityControls(item, quantity),
           ],
@@ -293,8 +290,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   }
 
   Widget _buildItemImage(MenuItemModel item) {
-    final hasImage =
-        item.imageUrl != null && (item.imageUrl ?? '').trim().isNotEmpty;
+    final hasImage = item.imageUrl != null && item.imageUrl!.trim().isNotEmpty;
 
     if (!hasImage) {
       return Container(
@@ -344,14 +340,14 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             ),
             if (item.isBestSeller)
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: Colors.green.shade50,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Text(
-                  'Best Seller',
+                  "Best Seller",
                   style: TextStyle(
                     color: Colors.green,
                     fontSize: 10,
@@ -361,7 +357,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               ),
           ],
         ),
+
         const SizedBox(height: 4),
+
         if (item.description.trim().isNotEmpty)
           Text(
             item.description,
@@ -372,15 +370,19 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               color: Colors.grey.shade700,
             ),
           ),
+
         const SizedBox(height: 6),
+
         Text(
-          '₹${item.price}',
+          "₹${item.price}",
           style: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.bold,
           ),
         ),
+
         const SizedBox(height: 2),
+
         Text(
           item.category,
           style: TextStyle(
@@ -388,11 +390,12 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             color: Colors.grey.shade600,
           ),
         ),
+
         if (!item.isAvailable)
           const Padding(
             padding: EdgeInsets.only(top: 4),
             child: Text(
-              'Currently unavailable',
+              "Currently unavailable",
               style: TextStyle(
                 fontSize: 11,
                 color: Colors.redAccent,
@@ -406,9 +409,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   Widget _buildQuantityControls(MenuItemModel item, int quantity) {
     final isAvailable = item.isAvailable;
 
-    if (!isAvailable) {
-      return const SizedBox.shrink();
-    }
+    if (!isAvailable) return const SizedBox.shrink();
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -417,19 +418,18 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           ElevatedButton(
             onPressed: () => _addToCart(item),
             style: ElevatedButton.styleFrom(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               minimumSize: const Size(60, 36),
             ),
-            child: const Text('ADD'),
+            child: const Text("ADD"),
           )
         else
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               IconButton(
-                onPressed: () => _removeFromCart(item),
                 iconSize: 20,
+                onPressed: () => _removeFromCart(item),
                 icon: const Icon(Icons.remove_circle_outline),
               ),
               Text(
@@ -437,8 +437,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                 style: const TextStyle(fontSize: 14),
               ),
               IconButton(
-                onPressed: () => _addToCart(item),
                 iconSize: 20,
+                onPressed: () => _addToCart(item),
                 icon: const Icon(Icons.add_circle_outline),
               ),
             ],
@@ -451,14 +451,13 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     return SafeArea(
       top: false,
       child: Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: const BoxDecoration(
           color: Colors.white,
           boxShadow: [
             BoxShadow(
               blurRadius: 6,
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black12,
             ),
           ],
         ),
@@ -469,14 +468,14 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '₹$_totalCartPrice',
+                    "₹$_totalCartPrice",
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   Text(
-                    '$_totalCartItems item(s) in cart',
+                    "$_totalCartItems item(s) in cart",
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey.shade700,
@@ -487,16 +486,12 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             ),
             TextButton(
               onPressed: _openCartScreen,
-              child: const Text('View Cart'),
+              child: const Text("View Cart"),
             ),
             const SizedBox(width: 8),
             ElevatedButton(
               onPressed: _showPaymentDialog,
-              style: ElevatedButton.styleFrom(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              ),
-              child: const Text('Pay & Order'),
+              child: const Text("Pay & Order"),
             ),
           ],
         ),
