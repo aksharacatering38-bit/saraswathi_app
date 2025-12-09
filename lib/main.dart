@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'supabase_config.dart';
 import 'otp_login.dart';
-import 'screens/customer_home.dart';
+import 'customer_home_screen.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 
 void main() async {

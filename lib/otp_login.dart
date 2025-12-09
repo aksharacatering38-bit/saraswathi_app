@@ -30,7 +30,7 @@ class _OtpLoginScreenState extends State<OtpLoginScreen> {
     setState(() => loading = true);
 
     try {
-      await SupabaseConfig.client.auth.signInWithOtp(phone: phone);
+      await SupabaseConfig.client.auth.signInWithOTP(phone: phone);
 
       setState(() => otpSent = true);
 
