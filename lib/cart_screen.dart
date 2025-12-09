@@ -1,218 +1,85 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'supabase_config.dart';
-import 'models/menu_item.dart';
+import 'models/cart_item_entry.dart';
 
-class CartItemEntry {
-  final MenuItemModel item;
-  int quantity;
-  CartItemEntry({required this.item, this.quantity = 1});
-}
+class CartScreen extends StatelessWidget {
+  final List<CartItemEntry> cartItems;
 
-class CartScreen extends StatefulWidget {
-  final List<CartItemEntry> cart;
+  const CartScreen({
+    super.key,
+    required this.cartItems,
+  });
 
-  const CartScreen({super.key, required this.cart});
-
-  @override
-  State<CartScreen> createState() => _CartScreenState();
-}
-
-class _CartScreenState extends State<CartScreen> {
-  final _nameController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _addressController = TextEditingController();
-
-  bool _isPlacingOrder = false;
-
-  int get totalAmount {
-    int total = 0;
-    for (final entry in widget.cart) {
-      total += entry.item.price * entry.quantity;
-    }
-    return total;
-  }
-
-  Future<void> _placeOrder() async {
-    if (widget.cart.isEmpty) return;
-
-    final name = _nameController.text.trim();
-    final phone = _phoneController.text.trim();
-    final address = _addressController.text.trim();
-
-    if (name.isEmpty || phone.isEmpty || address.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all details')),
-      );
-      return;
-    }
-
-    setState(() => _isPlacingOrder = true);
-
-    try {
-      final client = SupabaseConfig.client;
-
-      final items = widget.cart
-          .map((e) => {
-                'menu_item_id': e.item.id,
-                'name': e.item.name,
-                'quantity': e.quantity,
-                'price': e.item.price,
-              })
-          .toList();
-
-      await client.from('orders').insert({
-        'customer_name': name,
-        'customer_phone': phone,
-        'address': address,
-        'status': 'PENDING',
-        'total_amount': totalAmount,
-        'items': items,
-      });
-
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Order placed successfully 🙌')),
-      );
-
-      Navigator.pop(context, true); // return to home
-    } on PostgrestException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.message}')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to place order')),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _isPlacingOrder = false);
-      }
-    }
-  }
+  int get _totalPrice =>
+      cartItems.fold(0, (sum, entry) => sum + entry.totalPrice);
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Your Cart'),
+        centerTitle: true,
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              itemCount: widget.cart.length,
-              itemBuilder: (context, index) {
-                final entry = widget.cart[index];
+      body: cartItems.isEmpty
+          ? const Center(
+              child: Text('Your cart is empty'),
+            )
+          : Column(
+              children: [
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: cartItems.length,
+                    itemBuilder: (context, index) {
+                      final entry = cartItems[index];
+                      final item = entry.item;
 
-                return ListTile(
-                  title: Text(entry.item.name),
-                  subtitle: Text('₹${entry.item.price} x ${entry.quantity}'),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.remove_circle_outline),
-                        onPressed: () {
-                          setState(() {
-                            if (entry.quantity > 1) {
-                              entry.quantity--;
-                            } else {
-                              widget.cart.removeAt(index);
-                            }
-                          });
-                        },
-                      ),
-                      Text('${entry.quantity}'),
-                      IconButton(
-                        icon: const Icon(Icons.add_circle_outline),
-                        onPressed: () {
-                          setState(() {
-                            entry.quantity++;
-                          });
-                        },
+                      return ListTile(
+                        title: Text(item.name),
+                        subtitle: Text(
+                          'x${entry.quantity} • ₹${item.price} each',
+                        ),
+                        trailing: Text(
+                          '₹${entry.totalPrice}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        blurRadius: 4,
+                        color: Colors.black12,
                       ),
                     ],
                   ),
-                );
-              },
-            ),
-          ),
-
-          if (widget.cart.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Text('Your cart is empty'),
-            ),
-
-          // Customer details + total
-          if (widget.cart.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Customer Details',
-                    style: theme.textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Name',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _phoneController,
-                    keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(
-                      labelText: 'Phone',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _addressController,
-                    maxLines: 2,
-                    decoration: const InputDecoration(
-                      labelText: 'Address',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
+                  child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Total: ₹$totalAmount',
-                        style: theme.textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
+                        'Total: ₹$_totalPrice',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       ElevatedButton(
-                        onPressed:
-                            _isPlacingOrder ? null : _placeOrder,
-                        child: _isPlacingOrder
-                            ? const SizedBox(
-                                height: 18,
-                                width: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Text('Place Order'),
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                        child: const Text('Close'),
                       ),
                     ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-        ],
-      ),
     );
   }
 }
